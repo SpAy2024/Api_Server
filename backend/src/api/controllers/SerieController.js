@@ -15,17 +15,22 @@ export class SerieController {
   }
 
   static async get(req, res) {
-    try {
-      const serie = await Serie.findById(req.params.id);
-      if (!serie) {
-        return res.status(404).json({ success: false, error: 'Serie no encontrada' });
-      }
-      res.json(serie);
-    } catch (error) {
-      console.error('Error getting serie:', error);
-      res.status(500).json({ success: false, error: error.message });
+  try {
+    const serie = await Serie.findById(req.params.id);
+    if (!serie) {
+      return res.status(404).json({ success: false, error: 'Serie no encontrada' });
     }
+    
+    // ✅ AGREGAR ESTO: Obtener los episodios
+    const episodios = await Serie.getEpisodios(req.params.id);
+    serie.episodios = episodios;
+    
+    res.json(serie);
+  } catch (error) {
+    console.error('Error getting serie:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
+}
 
   // ✅ MÉTODO PARA OBTENER EPISODIOS (como en PHP)
   static async getEpisodios(req, res) {
