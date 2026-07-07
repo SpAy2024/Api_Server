@@ -86,6 +86,7 @@ export class PoseidonScraper {
   }
 
   // ============ EXTRAER SERVIDORES DESDE PÁGINA ============
+ // ============ EXTRAER SERVIDORES DESDE PÁGINA (COMPLETO) ============
   static async extraerServidoresDesdePagina(url) {
     try {
       console.log(`🔍 Extrayendo servidores de: ${url}`);
@@ -162,7 +163,7 @@ export class PoseidonScraper {
       $('table').each((i, table) => {
         $(table).find('tr').each((j, row) => {
           const rowText = $(row).text().toLowerCase();
-          const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions'];
+          const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions', '1fichier'];
           
           for (const pattern of servidoresConocidos) {
             if (rowText.includes(pattern)) {
@@ -174,6 +175,18 @@ export class PoseidonScraper {
                     servidoresVistos.add(server);
                     servidores.push({ server, url: href });
                     console.log(`  ✅ Servidor encontrado en tabla: ${server}`);
+                  }
+                }
+              });
+              // También buscar en data-attributes dentro de la fila
+              $(row).find('[data-tr], [data-url], [data-src]').each((k, el) => {
+                const dataUrl = $(el).attr('data-tr') || $(el).attr('data-url') || $(el).attr('data-src');
+                if (dataUrl && dataUrl.startsWith('http')) {
+                  const server = this.detectarServidor(dataUrl);
+                  if (server !== 'Desconocido' && !servidoresVistos.has(server)) {
+                    servidoresVistos.add(server);
+                    servidores.push({ server, url: dataUrl });
+                    console.log(`  ✅ Servidor encontrado en tabla (data-attr): ${server}`);
                   }
                 }
               });
@@ -204,7 +217,7 @@ export class PoseidonScraper {
       if (servidores.length === 0) {
         console.log('🔍 Buscando servidores en enlaces...');
         
-        const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions'];
+        const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions', '1fichier'];
         $('a[href]').each((i, el) => {
           const href = $(el).attr('href');
           if (href) {
@@ -230,7 +243,6 @@ export class PoseidonScraper {
       return [];
     }
   }
-
   // ============ OBTENER TODOS LOS EPISODIOS ============
   static async obtenerTodosEpisodios(url, tmdbId) {
     const todosEpisodios = [];
