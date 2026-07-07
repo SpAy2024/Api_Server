@@ -32,7 +32,8 @@ function App() {
           </Routes>
         </Layout>
       </BrowserRouter>
-      <ReactQueryDevtools />
+      {/* Solo mostrar devtools en desarrollo */}
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }
