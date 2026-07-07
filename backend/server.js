@@ -14,6 +14,7 @@ import scraperRoutes from './src/api/routes/scraper.js';
 import adminRoutes from './src/api/routes/admin.js';
 import tmdbRoutes from './src/api/routes/tmdb.js';
 import { initDatabase } from './src/database/connection.js';
+import adminManualRoutes from './src/api/routes/adminManual.js';
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.use('/api/series', seriesRoutes);
 app.use('/api/scraper', scraperRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tmdb', tmdbRoutes);
+app.use('/api/admin', adminManualRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

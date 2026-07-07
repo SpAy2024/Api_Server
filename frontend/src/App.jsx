@@ -8,6 +8,7 @@ import { PeliculaDetailPage } from './pages/PeliculaDetailPage';
 import { SerieDetailPage } from './pages/SerieDetailPage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminPage } from './pages/AdminPage';
+import { AdminManual } from './pages/AdminManual';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ function App() {
             <Route path="/serie/:id" element={<SerieDetailPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/admin/*" element={<AdminPage />} />
+            <Route path="/admin/manual" element={<AdminManual />} />
           </Routes>
         </Layout>
       </BrowserRouter>

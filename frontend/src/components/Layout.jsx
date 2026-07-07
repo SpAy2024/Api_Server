@@ -19,6 +19,11 @@ export function Layout({ children }) {
       {/* NAVBAR */}
       <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
         <Link to="/" className="logo">SPAYCINE</Link>
+
+
+        <Link to="/admin/manual" className="nav-link">
+          📝 Manual
+        </Link>
         <Link 
           to="/admin" 
           className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
