@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 let db = null;
+let adminInstance = null;
 
 try {
   console.log('📂 Inicializando Firebase con variables de entorno...');
@@ -35,12 +36,13 @@ try {
   };
 
   // Inicializar Firebase
-  admin.initializeApp({
+  const app = admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://peliculasspay-default-rtdb.firebaseio.com/'
   });
 
-  db = admin.database();
+  adminInstance = admin;
+  db = app.database();
   console.log('✅ Firebase inicializado correctamente con variables de entorno');
   console.log('📊 Proyecto:', process.env.FIREBASE_PROJECT_ID);
 
@@ -55,6 +57,7 @@ try {
   }
 
   // Modo dummy solo para desarrollo
+  adminInstance = admin;
   db = {
     ref: () => ({
       once: async () => ({ val: () => null, exists: () => false }),
@@ -66,4 +69,5 @@ try {
   };
 }
 
-export { db };
+// ✅ EXPORTAR AMBOS
+export { db, adminInstance as admin };
