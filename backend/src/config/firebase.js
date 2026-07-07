@@ -1,43 +1,60 @@
 // backend/src/config/firebase.js
 import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 let db = null;
-let adminInstance = null;
 
 try {
-  console.log('📂 Intentando cargar serviceAccountKey.json...');
-  
-  const credPath = join(__dirname, '../../serviceAccountKey.json');
-  const rawData = readFileSync(credPath, 'utf8');
-  const serviceAccount = JSON.parse(rawData);
-  
-  console.log('✅ Archivo cargado para:', serviceAccount.project_id);
-  
+  console.log('📂 Inicializando Firebase con variables de entorno...');
+
+  // Verificar que las variables existan
+  if (!process.env.FIREBASE_PROJECT_ID || 
+      !process.env.FIREBASE_CLIENT_EMAIL || 
+      !process.env.FIREBASE_PRIVATE_KEY) {
+    console.error('❌ Faltan variables de entorno de Firebase');
+    console.error('FIREBASE_PROJECT_ID:', process.env.FIREBASE_PROJECT_ID ? '✅' : '❌');
+    console.error('FIREBASE_CLIENT_EMAIL:', process.env.FIREBASE_CLIENT_EMAIL ? '✅' : '❌');
+    console.error('FIREBASE_PRIVATE_KEY:', process.env.FIREBASE_PRIVATE_KEY ? '✅' : '❌');
+    throw new Error('Missing Firebase credentials');
+  }
+
+  // Construir el objeto de credenciales
+  const serviceAccount = {
+    type: "service_account",
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID || "dummy",
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENT_ID || "dummy",
+    auth_uri: "https://accounts.google.com/o/oauth2/auth",
+    token_uri: "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.FIREBASE_CLIENT_EMAIL}`
+  };
+
   // Inicializar Firebase
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://peliculasspay-default-rtdb.firebaseio.com/'
+    databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://peliculasspay-default-rtdb.firebaseio.com/'
   });
-  
+
   db = admin.database();
-  adminInstance = admin;
-  console.log('✅ Firebase inicializado correctamente');
-  
+  console.log('✅ Firebase inicializado correctamente con variables de entorno');
+  console.log('📊 Proyecto:', process.env.FIREBASE_PROJECT_ID);
+
 } catch (error) {
-  console.log('⚠️ Firebase no disponible:', error.message);
-  console.log('📝 Usando modo dummy para desarrollo');
+  console.error('❌ Error inicializando Firebase:', error.message);
+  console.log('⚠️ El servidor continuará SIN Firebase');
   
-  // Modo dummy - crear objetos simulados
-  adminInstance = admin;
+  // ✅ Solo en desarrollo, NO en producción
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🚨 ERROR CRÍTICO: Firebase no disponible en producción');
+    process.exit(1);
+  }
+
+  // Modo dummy solo para desarrollo
   db = {
     ref: () => ({
       once: async () => ({ val: () => null, exists: () => false }),
@@ -49,5 +66,4 @@ try {
   };
 }
 
-// ✅ Exportar ambos
-export { db, adminInstance as admin };
+export { db };
