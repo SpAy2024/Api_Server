@@ -9,6 +9,9 @@ import { SerieDetailPage } from './pages/SerieDetailPage';
 import { SearchPage } from './pages/SearchPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminManual } from './pages/AdminManual';
+import { AdminTMDB } from './pages/AdminTMDB';
+
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +34,7 @@ function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/admin/*" element={<AdminPage />} />
             <Route path="/admin/manual" element={<AdminManual />} />
+            <Route path="/admin/tmdb" element={<AdminTMDB />} />
           </Routes>
         </Layout>
       </BrowserRouter>

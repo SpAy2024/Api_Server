@@ -24,6 +24,11 @@ export function Layout({ children }) {
         <Link to="/admin/manual" className="nav-link">
           📝 Manual
         </Link>
+
+        <Link to="/admin/tmdb" className="nav-link">
+         🎬 Buscar TMDB
+        </Link>
+
         <Link 
           to="/admin" 
           className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
