@@ -11,8 +11,8 @@ export function AdminPage() {
   const [peliculas, setPeliculas] = useState([]);
   const [series, setSeries] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [progress, setProgress] = useState(0); // ✅ número, no string
-  const [currentEpisodio, setCurrentEpisodio] = useState(''); // ✅ nombre correcto
+  const [progress, setProgress] = useState(0);
+  const [currentEpisodio, setCurrentEpisodio] = useState('');
 
   useEffect(() => {
     cargarDatos();
@@ -89,119 +89,175 @@ export function AdminPage() {
 
   if (loadingData) {
     return (
-      <div className="loading-spinner">
-        <div>
-          <div className="spinner"></div>
-          <p className="text">Cargando datos...</p>
-        </div>
+      <div className="admin-loading">
+        <div className="admin-loading-spinner"></div>
+        <p>Cargando datos...</p>
       </div>
     );
   }
 
+  const totalContent = peliculas.length + series.length;
+  const totalServidores = peliculas.reduce((acc, p) => acc + (p.servidores?.length || 0), 0);
+
   return (
-    <div className="admin-panel">
-      <h1 className="title">Administración</h1>
+    <div className="admin-container">
+      {/* HEADER */}
+      <div className="admin-header">
+        <div>
+          <h1>Panel de Administración</h1>
+          <p>Gestiona todo el contenido de SpayCine</p>
+        </div>
+        <div className="admin-stats">
+          <div className="admin-stat">
+            <span className="admin-stat-number">{peliculas.length}</span>
+            <span className="admin-stat-label">Películas</span>
+          </div>
+          <div className="admin-stat-divider"></div>
+          <div className="admin-stat">
+            <span className="admin-stat-number">{series.length}</span>
+            <span className="admin-stat-label">Series</span>
+          </div>
+          <div className="admin-stat-divider"></div>
+          <div className="admin-stat">
+            <span className="admin-stat-number">{totalContent}</span>
+            <span className="admin-stat-label">Total</span>
+          </div>
+          <div className="admin-stat-divider"></div>
+          <div className="admin-stat">
+            <span className="admin-stat-number">{totalServidores}</span>
+            <span className="admin-stat-label">Servidores</span>
+          </div>
+        </div>
+      </div>
 
-      {/* Formulario */}
-      <div className="card">
-        <h2>📥 Agregar contenido</h2>
-        
-        <form onSubmit={handleScrape}>
-          <div style={{ marginBottom: '16px' }}>
-            <label>Tipo de contenido</label>
-            <select 
-              value={tipo} 
-              onChange={(e) => setTipo(e.target.value)}
-              style={{ marginTop: '4px' }}
+      <div className="admin-grid">
+        {/* FORMULARIO */}
+        <div className="admin-card admin-form-card">
+          <div className="admin-card-header">
+            <span className="admin-card-icon">📥</span>
+            <h2>Agregar contenido</h2>
+          </div>
+          
+          <form onSubmit={handleScrape}>
+            <div className="admin-form-group">
+              <label>Tipo de contenido</label>
+              <select 
+                value={tipo} 
+                onChange={(e) => setTipo(e.target.value)}
+                className="admin-select"
+              >
+                <option value="pelicula">🎬 Película</option>
+                <option value="serie">📺 Serie</option>
+              </select>
+            </div>
+
+            <div className="admin-form-group">
+              <label>URL de PoseidonHD</label>
+              <input
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://www.poseidonhd2.co/pelicula/299536/"
+                className="admin-input"
+                required
+              />
+              <span className="admin-hint">Ejemplo: https://www.poseidonhd2.co/pelicula/299536/</span>
+            </div>
+
+            <button 
+              type="submit" 
+              className="admin-btn admin-btn-primary"
+              disabled={loading}
             >
-              <option value="pelicula">🎬 Película</option>
-              <option value="serie">📺 Serie</option>
-            </select>
-          </div>
+              {loading ? (
+                <>
+                  <span className="admin-btn-spinner"></span>
+                  Procesando...
+                </>
+              ) : (
+                '🚀 Scrapear y guardar'
+              )}
+            </button>
+          </form>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label>URL de PoseidonHD</label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.poseidonhd2.co/pelicula/299536/"
-              style={{ marginTop: '4px' }}
-              required
-            />
-            <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
-              Ejemplo: https://www.poseidonhd2.co/pelicula/299536/
-            </small>
-          </div>
-
-          <button 
-            type="submit" 
-            className="btn-submit"
-            disabled={loading}
-          >
-            {loading ? '⏳ Procesando...' : '🚀 Scrapear y guardar'}
-          </button>
-        </form>
-
-        {/* ✅ Barra de progreso */}
-        {loading && (
-          <div className="mt-4">
-            <div className="bg-zinc-800 rounded-lg p-4">
-              <p className="text-sm text-zinc-400">{currentEpisodio}</p>
-              <div className="w-full bg-zinc-700 rounded-full h-2 mt-2">
+          {/* Progress Bar */}
+          {loading && (
+            <div className="admin-progress">
+              <p>{currentEpisodio}</p>
+              <div className="admin-progress-bar">
                 <div 
-                  className="bg-[#E50914] h-2 rounded-full transition-all duration-500"
+                  className="admin-progress-fill"
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-zinc-500 mt-1">{Math.min(progress, 100)}% completado</p>
+              <span className="admin-progress-text">{Math.min(progress, 100)}%</span>
             </div>
-          </div>
-        )}
+          )}
 
-        {message && (
-          <div className={`message ${messageType}`}>
-            {message}
-          </div>
-        )}
-      </div>
+          {/* Messages */}
+          {message && (
+            <div className={`admin-message admin-message-${messageType}`}>
+              {message}
+            </div>
+          )}
+        </div>
 
-      {/* Lista de Películas y Series */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Películas */}
-        <div className="card">
-          <h2>🎬 Películas ({peliculas.length})</h2>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+        {/* LISTA DE PELÍCULAS */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <span className="admin-card-icon">🎬</span>
+            <h2>Películas</h2>
+            <span className="admin-card-badge">{peliculas.length}</span>
+          </div>
+          <div className="admin-list">
             {peliculas.length > 0 ? (
               peliculas.map((p) => (
-                <div key={p.tmdb_id} className="list-item">
-                  <span className="name">{p.titulo}</span>
-                  <span className="meta">{p.servidores?.length || 0} servidores</span>
+                <div key={p.tmdb_id} className="admin-list-item">
+                  <div className="admin-list-info">
+                    <span className="admin-list-title">{p.titulo}</span>
+                    {p.year && <span className="admin-list-year">{p.year}</span>}
+                  </div>
+                  <span className="admin-list-meta">
+                    🎬 {p.servidores?.length || 0} servidores
+                  </span>
                 </div>
               ))
             ) : (
-              <p style={{ color: '#666', textAlign: 'center', padding: '20px 0' }}>
-                No hay películas agregadas
-              </p>
+              <div className="admin-empty">
+                <span className="admin-empty-icon">📭</span>
+                <p>No hay películas agregadas</p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Series */}
-        <div className="card">
-          <h2>📺 Series ({series.length})</h2>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+        {/* LISTA DE SERIES */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <span className="admin-card-icon">📺</span>
+            <h2>Series</h2>
+            <span className="admin-card-badge">{series.length}</span>
+          </div>
+          <div className="admin-list">
             {series.length > 0 ? (
               series.map((s) => (
-                <div key={s.tmdb_id} className="list-item">
-                  <span className="name">{s.titulo}</span>
-                  <span className="meta">{s.temporadas || 0} temporadas</span>
+                <div key={s.tmdb_id} className="admin-list-item">
+                  <div className="admin-list-info">
+                    <span className="admin-list-title">{s.titulo}</span>
+                    {s.first_air_date && (
+                      <span className="admin-list-year">{s.first_air_date.substring(0, 4)}</span>
+                    )}
+                  </div>
+                  <span className="admin-list-meta">
+                    📺 {s.temporadas || 0} temporadas
+                  </span>
                 </div>
               ))
             ) : (
-              <p style={{ color: '#666', textAlign: 'center', padding: '20px 0' }}>
-                No hay series agregadas
-              </p>
+              <div className="admin-empty">
+                <span className="admin-empty-icon">📭</span>
+                <p>No hay series agregadas</p>
+              </div>
             )}
           </div>
         </div>
