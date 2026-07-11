@@ -10,7 +10,7 @@ import { SearchPage } from './pages/SearchPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminManual } from './pages/AdminManual';
 import { AdminTMDB } from './pages/AdminTMDB';
-import { SearchPage } from './pages/SearchPage';
+
 
 
 
@@ -36,7 +36,7 @@ function App() {
             <Route path="/admin/*" element={<AdminPage />} />
             <Route path="/admin/manual" element={<AdminManual />} />
             <Route path="/admin/tmdb" element={<AdminTMDB />} />
-            <Route path="/search" element={<SearchPage />} />
+            
           </Routes>
         </Layout>
       </BrowserRouter>
