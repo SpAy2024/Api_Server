@@ -103,7 +103,7 @@ export function AdminPage() {
     <div className="admin-container">
       {/* HEADER */}
       <div className="admin-header">
-        <div>
+        <div className="admin-header-left">
           <h1>Panel de Administración</h1>
           <p>Gestiona todo el contenido de SpayCine</p>
         </div>
