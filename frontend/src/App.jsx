@@ -10,7 +10,10 @@ import { SearchPage } from './pages/SearchPage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminManual } from './pages/AdminManual';
 import { AdminTMDB } from './pages/AdminTMDB';
-
+// ✅ Importar las nuevas páginas
+import { PeliculasPage } from './pages/PeliculasPage';
+import { SeriesPage } from './pages/SeriesPage';
+import { AnimePage } from './pages/AnimePage';
 
 
 
@@ -29,14 +32,25 @@ function App() {
       <BrowserRouter>
         <Layout>
           <Routes>
+            {/* ✅ Página de inicio */}
             <Route path="/" element={<HomePage />} />
+            
+            {/* ✅ Páginas de categorías - NUEVAS */}
+            <Route path="/peliculas" element={<PeliculasPage />} />
+            <Route path="/series" element={<SeriesPage />} />
+            <Route path="/anime" element={<AnimePage />} />
+            
+            {/* ✅ Páginas de detalle */}
             <Route path="/pelicula/:id" element={<PeliculaDetailPage />} />
             <Route path="/serie/:id" element={<SerieDetailPage />} />
+            
+            {/* ✅ Búsqueda */}
             <Route path="/search" element={<SearchPage />} />
-            <Route path="/admin/*" element={<AdminPage />} />
+            
+            {/* ✅ Administración */}
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin/manual" element={<AdminManual />} />
             <Route path="/admin/tmdb" element={<AdminTMDB />} />
-            
           </Routes>
         </Layout>
       </BrowserRouter>
