@@ -1535,3 +1535,137 @@ a {
     font-size: 13px;
   }
 }
+
+/* frontend/src/index.css - Agregar al final */
+
+/* ============================================
+   CATEGORÍA NAV
+   ============================================ */
+.category-nav {
+  padding: 0 4%;
+  margin: -20px 0 20px 0;
+  position: relative;
+  z-index: 20;
+}
+
+.category-nav-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: none;
+}
+
+.category-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.category-nav-link {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #b3b3b3;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.category-nav-link:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.category-nav-link.active {
+  color: #ffffff;
+  background: #E50914;
+  border-color: #E50914;
+}
+
+/* ============================================
+   CATEGORÍA PAGES
+   ============================================ */
+.category-page {
+  padding: 20px 4%;
+  min-height: 60vh;
+}
+
+.category-header {
+  margin-bottom: 24px;
+}
+
+.category-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.category-header p {
+  color: #808080;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 476px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 641px) {
+  .category-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 769px) {
+  .category-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .category-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  text-align: center;
+}
+
+.empty-state h2 {
+  color: #808080;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.empty-state p {
+  color: #666;
+  margin-top: 8px;
+}
+
+.empty-link {
+  margin-top: 16px;
+  color: #E50914;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.empty-link:hover {
+  text-decoration: underline;
+}
