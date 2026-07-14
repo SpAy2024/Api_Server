@@ -1631,20 +1631,3 @@ a {
   }
 }
 
-/* Agregar al final de index.css */
-
-.btn-retry {
-  margin-top: 16px;
-  padding: 10px 32px;
-  background: #E50914;
-  border: none;
-  border-radius: 4px;
-  color: #ffffff;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.btn-retry:hover {
-  background: #b20710;
-}

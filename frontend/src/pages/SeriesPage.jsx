@@ -28,8 +28,10 @@ export function SeriesPage() {
   if (loading) {
     return (
       <div className="loading-spinner">
-        <div className="spinner"></div>
-        <p className="text">Cargando series...</p>
+        <div>
+          <div className="spinner"></div>
+          <p className="text">Cargando series...</p>
+        </div>
       </div>
     );
   }
@@ -40,7 +42,21 @@ export function SeriesPage() {
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '60px', marginBottom: '16px' }}>😢</div>
           <h2 style={{ color: '#808080', fontSize: '24px' }}>{error}</h2>
-          <button onClick={() => window.location.reload()} className="btn-retry">Reintentar</button>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              marginTop: '16px',
+              padding: '10px 32px',
+              background: '#E50914',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#fff',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -55,7 +71,7 @@ export function SeriesPage() {
 
       {series.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">📭</div>
+          <div style={{ fontSize: '60px', marginBottom: '16px' }}>📭</div>
           <h2>No hay series disponibles</h2>
           <p>Agrega contenido desde el panel de administración</p>
           <Link to="/admin" className="empty-link">Ir al Admin</Link>
