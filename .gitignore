@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Firebase
+serviceAccountKey.json
+*.pem
+
+# Cache
+.cache/
+.vite/
+.temp/
+
+# Data
+data/
+*.db
+*.sqlite
+
+# Coverage
+coverage/
+
+# Misc
+*.pem
+*.key
+*.crt
