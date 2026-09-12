@@ -34,58 +34,86 @@ export function AdminPage() {
     }
   };
 
+
+
   const handleScrape = async (e) => {
-    e.preventDefault();
-    if (!url) {
-      setMessage('⚠️ Ingresa una URL válida');
-      setMessageType('error');
-      return;
+  e.preventDefault();
+  if (!url) {
+    setMessage('⚠️ Ingresa una URL válida');
+    setMessageType('error');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setMessage('');
+    setProgress(10);
+    setCurrentEpisodio('⏳ Iniciando scraping...');
+
+    // ✅ Usar el endpoint correcto del ScraperController
+    const API_URL = import.meta.env.VITE_API_URL || '/api';
+    const endpoint = tipo === 'pelicula' 
+      ? `${API_URL}/scraper/pelicula` 
+      : `${API_URL}/scraper/serie`;
+
+    if (tipo === 'pelicula') {
+      setCurrentEpisodio('🎬 Extrayendo información de la película...');
+      setProgress(30);
+    } else {
+      setCurrentEpisodio('📺 Extrayendo serie con servidores de episodios... (puede tardar)');
+      setProgress(20);
     }
 
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, guardar: true })
+    });
+
+    let result;
     try {
-      setLoading(true);
-      setMessage('');
-      setProgress(10);
-      setCurrentEpisodio('⏳ Iniciando scraping...');
+      result = await response.json();
+    } catch (e) {
+      result = { error: `Error ${response.status}: ${response.statusText}` };
+    }
 
-      let result;
-      if (tipo === 'pelicula') {
-        setCurrentEpisodio('🎬 Extrayendo información de la película...');
-        setProgress(30);
-        result = await peliculasAPI.scrape({ url });
-      } else {
-        setCurrentEpisodio('📺 Extrayendo información de la serie...');
-        setProgress(30);
-        result = await seriesAPI.scrape({ url });
-      }
-
-      if (result?.data?.success) {
-        setProgress(100);
-        setCurrentEpisodio('✅ Completado');
-        setMessage(`✅ "${result.data.titulo}" agregado correctamente!`);
-        setMessageType('success');
-        setUrl('');
-        await cargarDatos();
-      } else {
-        setMessage(`❌ Error: ${result?.data?.error || 'Error desconocido'}`);
-        setMessageType('error');
-        setProgress(0);
-        setCurrentEpisodio('❌ Falló');
-      }
-    } catch (error) {
-      console.error('Error scraping:', error);
-      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    if (response.ok && result.success) {
+      setProgress(100);
+      setCurrentEpisodio('✅ Completado');
+      
+      const titulo = tipo === 'pelicula' 
+        ? result.pelicula?.titulo 
+        : result.serie?.titulo;
+      
+      const info = tipo === 'pelicula'
+        ? `${result.pelicula?.servidores?.length || 0} servidores`
+        : `${result.serie?.total_episodios || 0} episodios (${result.serie?.episodios_con_servidores || 0} con servidores)`;
+      
+      setMessage(`✅ "${titulo || 'Contenido'}" agregado correctamente! (${info})`);
+      setMessageType('success');
+      setUrl('');
+      await cargarDatos();
+    } else {
+      const errorMsg = result.error 
+                    || result.message 
+                    || `Error ${response.status}`;
+      
+      setMessage(`❌ ${errorMsg}`);
       setMessageType('error');
       setProgress(0);
       setCurrentEpisodio('❌ Falló');
-      
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        setMessage('⏳ El proceso está tomando más tiempo de lo esperado. Por favor espera...');
-      }
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Error:', error);
+    setMessage(`❌ Error de conexión: ${error.message}`);
+    setMessageType('error');
+    setProgress(0);
+    setCurrentEpisodio('❌ Falló');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   if (loadingData) {
     return (
