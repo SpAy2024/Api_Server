@@ -13,6 +13,7 @@ import { AdminTMDB } from './pages/AdminTMDB';
 import { PeliculasPage } from './pages/PeliculasPage';
 import { SeriesPage } from './pages/SeriesPage';
 import { AnimePage } from './pages/AnimePage';
+import { ScraperPanel } from './pages/Admin/ScraperPanel';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ function App() {
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin/manual" element={<AdminManual />} />
             <Route path="/admin/tmdb" element={<AdminTMDB />} />
+            <Route path="/admin/scraper" element={<ScraperPanel />} />
           </Routes>
         </Layout>
       </BrowserRouter>
