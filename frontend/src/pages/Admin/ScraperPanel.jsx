@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { scraperAPI, firebaseService } from '../../services/api';
 
-export default function ScraperPanel() {
+export function ScraperPanel() {
   // ============ ESTADO ============
   const [tab, setTab] = useState('scraper'); // 'scraper' | 'guardadas'
   const [loading, setLoading] = useState(false);

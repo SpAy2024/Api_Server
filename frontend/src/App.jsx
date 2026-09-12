@@ -15,6 +15,7 @@ import { SeriesPage } from './pages/SeriesPage';
 import { AnimePage } from './pages/AnimePage';
 import { ScraperPanel } from './pages/Admin/ScraperPanel';
 
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
