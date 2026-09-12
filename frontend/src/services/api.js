@@ -166,6 +166,14 @@ export const scraperAPI = {
   scrapeSerie: (data) => api.post('/scraper/serie', data).then(r => r.data),
   extract: (data) => api.post('/scraper/extract', data).then(r => r.data),
 
+// ============ SERIES ============
+totalPaginasSeries: () => api.get('/scraper/series/total-paginas').then(r => r.data),
+enlacesPaginaSeries: (n) => api.get(`/scraper/series/pagina/${n}`).then(r => r.data),
+scrapePaginaSeries: (n, data) => api.post(`/scraper/series/pagina/${n}`, data).then(r => r.data),
+scrapeRangoSeries: (data) => api.post('/scraper/series/rango', data).then(r => r.data),
+
+
+
   // Stats
   stats: () => api.get('/scraper/stats').then(r => r.data)
 };
