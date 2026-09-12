@@ -306,4 +306,161 @@ export class ScraperController {
       res.status(500).json({ error: error.message });
     }
   }
+
+/////////////////////////
+// ============ DETECTAR TOTAL DE PÁGINAS DE SERIES ============
+static async getTotalPaginasSeries(req, res) {
+  try {
+    const total = await PoseidonScraper.detectarTotalPaginasSeries();
+    res.json({ success: true, total_paginas: total });
+  } catch (error) {
+    console.error('Error en getTotalPaginasSeries:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// ============ OBTENER ENLACES DE UNA PÁGINA DE SERIES ============
+static async getEnlacesPaginaSeries(req, res) {
+  try {
+    const pagina = parseInt(req.params.pagina) || 1;
+    const url = pagina === 1 
+      ? 'https://www.poseidonhd2.co/series'
+      : `https://www.poseidonhd2.co/series/page/${pagina}`;
+    
+    const series = await PoseidonScraper.extraerEnlacesSeries(url);
+    
+    res.json({ 
+      success: true, 
+      pagina, 
+      total: series.length, 
+      series 
+    });
+  } catch (error) {
+    console.error('Error en getEnlacesPaginaSeries:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// ============ SCRAPEAR PÁGINA DE SERIES ============
+static async scrapePaginaSeries(req, res) {
+  try {
+    const pagina = parseInt(req.params.pagina) || 1;
+    const { guardar = true } = req.body;
+
+    console.log(`\n🚀 Scrapeando página de series ${pagina}...`);
+    
+    const series = await PoseidonScraper.scrapePaginaSeries(pagina, true);
+
+    let guardado = null;
+    if (guardar && series.length > 0) {
+      // Guardar series (sin episodios por ahora, solo metadata)
+      guardado = { guardadas: 0, actualizadas: 0, errores: [] };
+      
+      for (const serie of series) {
+        try {
+          const existente = await Serie.findById(serie.tmdb_id);
+          if (existente) {
+            await Serie.update(serie.tmdb_id, serie);
+            guardado.actualizadas++;
+          } else {
+            await Serie.create(serie);
+            guardado.guardadas++;
+          }
+        } catch (err) {
+          guardado.errores.push({
+            tmdb_id: serie.tmdb_id,
+            titulo: serie.titulo,
+            error: err.message
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      pagina,
+      encontradas: series.length,
+      guardado,
+      series
+    });
+  } catch (error) {
+    console.error('Error en scrapePaginaSeries:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+// ============ SCRAPEAR RANGO DE PÁGINAS DE SERIES ============
+static async scrapeRangoSeries(req, res) {
+  try {
+    const { 
+      paginaInicio = 1, 
+      paginaFin = 1, 
+      guardar = true 
+    } = req.body;
+
+    if (paginaInicio < 1 || paginaFin < paginaInicio) {
+      return res.status(400).json({ error: 'Rango de páginas inválido' });
+    }
+
+    if (paginaFin - paginaInicio > 10) {
+      return res.status(400).json({ error: 'Máximo 10 páginas por request' });
+    }
+
+    console.log(`\n🚀 Scrapeando rango de series ${paginaInicio}-${paginaFin}...`);
+
+    const todasSeries = [];
+    const vistos = new Set();
+    let guardadasTotal = 0;
+    let actualizadasTotal = 0;
+    const errores = [];
+
+    for (let page = paginaInicio; page <= paginaFin; page++) {
+      const series = await PoseidonScraper.scrapePaginaSeries(page, true);
+      
+      for (const s of series) {
+        if (!vistos.has(s.tmdb_id)) {
+          vistos.add(s.tmdb_id);
+          todasSeries.push(s);
+          
+          if (guardar) {
+            try {
+              const existente = await Serie.findById(s.tmdb_id);
+              if (existente) {
+                await Serie.update(s.tmdb_id, s);
+                actualizadasTotal++;
+              } else {
+                await Serie.create(s);
+                guardadasTotal++;
+              }
+            } catch (err) {
+              errores.push({ tmdb_id: s.tmdb_id, titulo: s.titulo, error: err.message });
+            }
+          }
+        }
+      }
+
+      if (page < paginaFin) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    res.json({
+      success: true,
+      rango: `${paginaInicio}-${paginaFin}`,
+      encontradas: todasSeries.length,
+      guardado: {
+        guardadas: guardadasTotal,
+        actualizadas: actualizadasTotal,
+        errores
+      }
+    });
+  } catch (error) {
+    console.error('Error en scrapeRangoSeries:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+
+
+
 }

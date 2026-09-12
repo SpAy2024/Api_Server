@@ -22,6 +22,7 @@ export function ScraperPanel() {
   const [maxPaginas, setMaxPaginas] = useState(5);
   const [conServidores, setConServidores] = useState(false);
   const [guardarAuto, setGuardarAuto] = useState(true);
+  const [tipo, setTipo] = useState('peliculas'); // 'peliculas' | 'series'
 
   useEffect(() => {
     cargarIniciales();
@@ -207,6 +208,24 @@ export function ScraperPanel() {
           <p>PoseidonHD - Extrae películas y servidores</p>
         </div>
       </div>
+
+{/* Toggle Películas / Series */}
+<div className="scraper-tabs" style={{marginBottom: '16px'}}>
+  <button
+    className={`scraper-tab ${tipo === 'peliculas' ? 'active' : ''}`}
+    onClick={() => { setTipo('peliculas'); setTab('scraper'); }}
+  >
+    🎬 Películas
+  </button>
+  <button
+    className={`scraper-tab ${tipo === 'series' ? 'active' : ''}`}
+    onClick={() => { setTipo('series'); setTab('scraper'); }}
+  >
+    📺 Series
+  </button>
+</div>
+
+
 
       {stats && (
         <div className="scraper-stats-grid">

@@ -811,6 +811,226 @@ static async scrapePaginaConServidores(pagina = 1) {
   return resultados;
 }
 
+////////////////
+// ============ EXTRAER ENLACES DE SERIES DESDE PÁGINA DE LISTADO ============
+static async extraerEnlacesSeries(url) {
+  try {
+    console.log(`🔍 Extrayendo enlaces de series de: ${url}`);
+    
+    const html = await this.obtenerContenido(url);
+    if (!html) return [];
 
+    const $ = cheerio.load(html);
+    const series = [];
+    const vistos = new Set();
+
+    // Buscar todos los enlaces que apunten a /serie/
+    $('a[href*="/serie/"]').each((i, el) => {
+      let href = $(el).attr('href');
+      if (!href) return;
+
+      if (!href.startsWith('http')) {
+        href = 'https://www.poseidonhd2.co' + (href.startsWith('/') ? href : '/' + href);
+      }
+
+      const match = href.match(/\/serie\/(\d+)\/([^\/\?]+)/);
+      if (match) {
+        const tmdbId = match[1];
+        const slug = match[2];
+        const key = tmdbId;
+
+        if (!vistos.has(key)) {
+          vistos.add(key);
+          
+          const $container = $(el).closest('article, .item, .serie, li, div');
+          let titulo = $(el).attr('title') || $(el).text().trim() || '';
+          
+          if (!titulo) {
+            titulo = $container.find('h2, h3, .title, .name').first().text().trim();
+          }
+
+          let year = null;
+          const yearMatch = $container.text().match(/\b(19|20)\d{2}\b/);
+          if (yearMatch) year = yearMatch[0];
+
+          let poster = null;
+          const $img = $container.find('img').first();
+          if ($img.length) {
+            poster = $img.attr('src') || $img.attr('data-src') || $img.attr('data-lazy-src');
+            if (poster && !poster.startsWith('http')) {
+              poster = 'https://www.poseidonhd2.co' + (poster.startsWith('/') ? poster : '/' + poster);
+            }
+          }
+
+          let rating = null;
+          const ratingMatch = $container.text().match(/(\d+\.\d+)/);
+          if (ratingMatch) rating = parseFloat(ratingMatch[1]);
+
+          series.push({
+            tmdbId,
+            slug,
+            titulo: titulo || slug.replace(/-/g, ' '),
+            year,
+            poster,
+            rating,
+            url: href
+          });
+        }
+      }
+    });
+
+    // Fallback: __NEXT_DATA__
+    if (series.length === 0) {
+      const nextData = $('script#__NEXT_DATA__').html();
+      if (nextData) {
+        try {
+          const data = JSON.parse(nextData);
+          const items = data?.props?.pageProps?.series 
+                     || data?.props?.pageProps?.items 
+                     || data?.props?.pageProps?.data 
+                     || [];
+          
+          for (const item of items) {
+            const tmdbId = item.id || item.tmdb_id || item.tmdbId;
+            if (tmdbId) {
+              const key = String(tmdbId);
+              if (!vistos.has(key)) {
+                vistos.add(key);
+                const slug = (item.slug || item.title || '').toLowerCase()
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-|-$/g, '');
+                
+                series.push({
+                  tmdbId: String(tmdbId),
+                  slug: item.slug || slug,
+                  titulo: item.title || item.name || '',
+                  year: item.first_air_date ? item.first_air_date.substring(0, 4) : null,
+                  poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+                  rating: item.vote_average || null,
+                  url: `https://www.poseidonhd2.co/serie/${tmdbId}/${item.slug || slug}`
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.log('⚠️ Error parsing __NEXT_DATA__ en listado de series:', e.message);
+        }
+      }
+    }
+
+    console.log(`📊 Series encontradas en página: ${series.length}`);
+    return series;
+  } catch (error) {
+    console.log(`⚠️ Error extrayendo enlaces de series: ${error.message}`);
+    return [];
+  }
+}
+
+// ============ DETECTAR TOTAL DE PÁGINAS DE SERIES ============
+static async detectarTotalPaginasSeries() {
+  try {
+    const html = await this.obtenerContenido('https://www.poseidonhd2.co/series');
+    if (!html) return 1;
+
+    const $ = cheerio.load(html);
+    let maxPage = 1;
+
+    $('a[href*="/series/page/"]').each((i, el) => {
+      const href = $(el).attr('href');
+      if (href) {
+        const match = href.match(/\/series\/page\/(\d+)/);
+        if (match) {
+          const num = parseInt(match[1]);
+          if (num > maxPage) maxPage = num;
+        }
+      }
+    });
+
+    console.log(`📊 Total de páginas de series: ${maxPage}`);
+    return maxPage;
+  } catch (error) {
+    console.log(`⚠️ Error detectando total de páginas de series: ${error.message}`);
+    return 1;
+  }
+}
+
+// ============ SCRAPEAR UNA PÁGINA DE SERIES (ENRIQUECIDA CON TMDB) ============
+static async scrapePaginaSeries(pagina = 1, enriquecerConTMDB = true) {
+  const url = pagina === 1 
+    ? 'https://www.poseidonhd2.co/series'
+    : `https://www.poseidonhd2.co/series/page/${pagina}`;
+
+  console.log(`\n📄 Scrapeando página de series ${pagina}: ${url}`);
+  
+  const enlaces = await this.extraerEnlacesSeries(url);
+  
+  if (!enriquecerConTMDB || enlaces.length === 0) {
+    return enlaces;
+  }
+
+  console.log(`🎬 Enriqueciendo ${enlaces.length} series con datos de TMDB...`);
+  
+  const enriquecidas = [];
+  
+  for (const serie of enlaces) {
+    try {
+      const tmdb = await this.obtenerTMDBData(serie.tmdbId, 'tv');
+      
+      if (tmdb) {
+        enriquecidas.push({
+          tmdb_id: serie.tmdbId,
+          titulo: tmdb.name || serie.titulo,
+          titulo_original: tmdb.original_name || serie.titulo,
+          slug: serie.slug,
+          url_poseidon: serie.url,
+          overview: tmdb.overview || '',
+          poster_url: tmdb.poster_path 
+            ? `https://image.tmdb.org/t/p/w500${tmdb.poster_path}` 
+            : serie.poster,
+          backdrop_url: tmdb.backdrop_path 
+            ? `https://image.tmdb.org/t/p/w1280${tmdb.backdrop_path}` 
+            : '',
+          vote_average: tmdb.vote_average || 0,
+          vote_count: tmdb.vote_count || 0,
+          first_air_date: tmdb.first_air_date || '',
+          year: tmdb.first_air_date ? tmdb.first_air_date.substring(0, 4) : serie.year,
+          generos: (tmdb.genres || []).map(g => g.name),
+          temporadas: tmdb.number_of_seasons || 0,
+          numero_episodios: tmdb.number_of_episodes || 0,
+          tipo: 'serie',
+          servidores: []
+        });
+      } else {
+        throw new Error('Sin datos TMDB');
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      console.log(`  ⚠️ Error TMDB para ${serie.tmdbId}: ${error.message}`);
+      enriquecidas.push({
+        tmdb_id: serie.tmdbId,
+        titulo: serie.titulo,
+        titulo_original: serie.titulo,
+        slug: serie.slug,
+        url_poseidon: serie.url,
+        overview: '',
+        poster_url: serie.poster,
+        backdrop_url: '',
+        vote_average: serie.rating || 0,
+        vote_count: 0,
+        first_air_date: serie.year ? `${serie.year}-01-01` : '',
+        year: serie.year,
+        generos: [],
+        temporadas: 0,
+        numero_episodios: 0,
+        tipo: 'serie',
+        servidores: []
+      });
+    }
+  }
+  
+  console.log(`✅ Página ${pagina}: ${enriquecidas.length} series procesadas`);
+  return enriquecidas;
+}
 
 }

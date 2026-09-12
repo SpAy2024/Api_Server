@@ -22,4 +22,12 @@ router.post('/peliculas/todo', ScraperController.scrapeTodo);
 // ============ ESTADÍSTICAS ============
 router.get('/stats', ScraperController.getStats);
 
+
+// ============ SERIES POR PÁGINAS ============
+router.get('/series/total-paginas', ScraperController.getTotalPaginasSeries);
+router.get('/series/pagina/:pagina', ScraperController.getEnlacesPaginaSeries);
+router.post('/series/pagina/:pagina', ScraperController.scrapePaginaSeries);
+router.post('/series/rango', ScraperController.scrapeRangoSeries);
+
+
 export default router;
