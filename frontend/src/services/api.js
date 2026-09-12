@@ -172,6 +172,8 @@ enlacesPaginaSeries: (n) => api.get(`/scraper/series/pagina/${n}`).then(r => r.d
 scrapePaginaSeries: (n, data) => api.post(`/scraper/series/pagina/${n}`, data).then(r => r.data),
 scrapeRangoSeries: (data) => api.post('/scraper/series/rango', data).then(r => r.data),
 
+// Scrapeo masivo de servidores de series
+scrapeServidoresSeriesMasivo: (data) => api.post('/scraper/series/scrapear-servidores-masivo', data).then(r => r.data),
 
 
   // Stats

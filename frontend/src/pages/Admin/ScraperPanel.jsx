@@ -398,6 +398,27 @@ export function ScraperPanel() {
             </div>
 
             <div className="scraper-checkboxes">
+
+     {tipo === 'series' && (
+  <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)'}}>
+    <h3 style={{fontSize: '14px', color: '#ffffff', marginBottom: '12px'}}>
+      🔄 Scrapear servidores de series en masa
+    </h3>
+    <p style={{fontSize: '12px', color: '#808080', marginBottom: '12px'}}>
+      Extrae servidores de los episodios de 5 series por click. Cada serie puede tardar 2-3 minutos.
+    </p>
+    <button
+      onClick={scrapearServidoresSeries}
+      disabled={loading}
+      className="scraper-btn scraper-btn-orange"
+      style={{width: '100%', padding: '12px'}}
+    >
+      🚀 Scrapear servidores de 5 series
+    </button>
+  </div>
+)}
+
+
               <label className="scraper-checkbox">
                 <input
                   type="checkbox"
@@ -521,6 +542,35 @@ function ItemCard({ item }) {
       </div>
     </div>
   );
+}
+
+
+async function scrapearServidoresSeries() {
+  const limite = 5; // 5 series por click (cada una puede tener 10-20 episodios)
+  
+  if (!confirm(`¿Scrapear servidores de ${limite} series? Esto puede tardar 2-3 minutos por serie.`)) return;
+  
+  setLoading(true);
+  setError(null);
+  setMensaje(`🚀 Scrapeando servidores de ${limite} series... esto puede tardar varios minutos`);
+  setItems([]);
+  
+  try {
+    const res = await scraperAPI.scrapeServidoresSeriesMasivo({
+      limite,
+      soloSinServidores: true
+    });
+    
+    setMensaje(
+      `✅ Procesadas: ${res.procesadas} • Actualizadas: ${res.actualizadas} • ` +
+      `Errores: ${res.errores} • Pendientes: ${res.pendientes}`
+    );
+    cargarIniciales();
+  } catch (err) {
+    setError(err.response?.data?.error || err.message);
+  } finally {
+    setLoading(false);
+  }
 }
 
 // ============ LISTA GUARDADAS ============

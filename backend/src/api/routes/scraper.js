@@ -29,5 +29,8 @@ router.get('/series/pagina/:pagina', ScraperController.getEnlacesPaginaSeries);
 router.post('/series/pagina/:pagina', ScraperController.scrapePaginaSeries);
 router.post('/series/rango', ScraperController.scrapeRangoSeries);
 
+// ============ SCRAPEO MASIVO DE SERVIDORES DE SERIES ============
+router.post('/series/scrapear-servidores-masivo', ScraperController.scrapeServidoresSeriesMasivo);
+
 
 export default router;

@@ -71,52 +71,70 @@ export class ScraperController {
   }
 
   // ============ SCRAPEAR SERIE INDIVIDUAL ============
-  static async scrapeSerie(req, res) {
-    try {
-      const { url, guardar = true } = req.body;
-      if (!url) return res.status(400).json({ error: 'URL requerida' });
+  // ============ SCRAPEAR SERIE CON SERVIDORES DE EPISODIOS ============
+static async scrapeSerie(req, res) {
+  try {
+    const { url, guardar = true } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL requerida' });
 
-      const resultado = await PoseidonScraper.scrapeSerie(url);
-      
-      const tmdbData = await PoseidonScraper.obtenerTMDBData(resultado.tmdbId, 'tv');
-      
-      const serieData = {
-        tmdb_id: resultado.tmdbId,
-        titulo: tmdbData?.name || 'Sin título',
-        titulo_original: tmdbData?.original_name || '',
-        overview: tmdbData?.overview || '',
-        poster_url: tmdbData?.poster_path 
-          ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}` 
-          : '',
-        backdrop_url: tmdbData?.backdrop_path 
-          ? `https://image.tmdb.org/t/p/w1280${tmdbData.backdrop_path}` 
-          : '',
-        vote_average: tmdbData?.vote_average || 0,
-        vote_count: tmdbData?.vote_count || 0,
-        first_air_date: tmdbData?.first_air_date || '',
-        temporadas: tmdbData?.number_of_seasons || 0,
-        generos: (tmdbData?.genres || []).map(g => g.name),
-        episodios: resultado.episodios,
-        url_poseidon: url,
-        tipo: 'serie'
-      };
-
-      let guardado = false;
-      if (guardar) {
-        await FirebaseService.saveSerie(serieData);
-        guardado = true;
-      }
-
-      res.json({ 
-        success: true, 
-        guardado,
-        serie: serieData 
+    console.log(`\n📺 Scrapeando serie: ${url}`);
+    
+    // ✅ Usar el nuevo método que extrae servidores de episodios
+    const resultado = await PoseidonScraper.scrapeSerieConServidores(url);
+    
+    if (!resultado || resultado.episodios.length === 0) {
+      return res.status(404).json({ 
+        error: 'No se encontraron episodios',
+        tmdbId: resultado?.tmdbId 
       });
-    } catch (error) {
-      console.error('Error en scrapeSerie:', error);
-      res.status(500).json({ error: error.message });
     }
+
+    // Obtener datos de TMDB
+    const tmdbData = await PoseidonScraper.obtenerTMDBData(resultado.tmdbId, 'tv');
+    
+    const serieData = {
+      tmdb_id: resultado.tmdbId,
+      titulo: tmdbData?.name || 'Sin título',
+      titulo_original: tmdbData?.original_name || '',
+      overview: tmdbData?.overview || '',
+      poster_url: tmdbData?.poster_path 
+        ? `https://image.tmdb.org/t/p/w500${tmdbData.poster_path}` 
+        : '',
+      backdrop_url: tmdbData?.backdrop_path 
+        ? `https://image.tmdb.org/t/p/w1280${tmdbData.backdrop_path}` 
+        : '',
+      vote_average: tmdbData?.vote_average || 0,
+      vote_count: tmdbData?.vote_count || 0,
+      first_air_date: tmdbData?.first_air_date || '',
+      year: tmdbData?.first_air_date?.substring(0, 4) || '',
+      temporadas: tmdbData?.number_of_seasons || 0,
+      generos: (tmdbData?.genres || []).map(g => g.name),
+      episodios: resultado.episodios,
+      url_poseidon: url,
+      tipo: 'serie',
+      // ✅ Contar cuántos episodios tienen servidores
+      total_episodios: resultado.episodios.length,
+      episodios_con_servidores: resultado.episodios.filter(ep => 
+        ep.servidores && ep.servidores.length > 0
+      ).length
+    };
+
+    let guardado = false;
+    if (guardar) {
+      await FirebaseService.saveSerie(serieData);
+      guardado = true;
+    }
+
+    res.json({ 
+      success: true, 
+      guardado,
+      serie: serieData 
+    });
+  } catch (error) {
+    console.error('Error en scrapeSerie:', error);
+    res.status(500).json({ error: error.message });
   }
+}
 
   // ============ NUEVO: DETECTAR TOTAL DE PÁGINAS ============
   static async getTotalPaginas(req, res) {
@@ -460,6 +478,101 @@ static async scrapeRangoSeries(req, res) {
   }
 }
 
+
+
+////////////////////////////////////////
+// ============ SCRAPEAR SERVIDORES DE TODAS LAS SERIES ============
+static async scrapeServidoresSeriesMasivo(req, res) {
+  try {
+    const { limite = 5, soloSinServidores = true } = req.body;
+
+    console.log(`\n🚀 Scraping masivo de series (límite: ${limite})...`);
+
+    // Obtener todas las series
+    const todasSeries = await Serie.findAll();
+    
+    // Filtrar las que necesitan servidores
+    const candidatas = soloSinServidores
+      ? todasSeries.filter(s => {
+          // Verificar si tiene episodios con servidores
+          return !s.episodios_con_servidores || s.episodios_con_servidores === 0;
+        })
+      : todasSeries;
+
+    console.log(`📊 ${candidatas.length} series necesitan servidores`);
+
+    if (candidatas.length === 0) {
+      return res.json({
+        success: true,
+        mensaje: 'Todas las series ya tienen servidores',
+        procesadas: 0
+      });
+    }
+
+    // Procesar en lotes hasta el límite
+    const lote = candidatas.slice(0, limite);
+    const resultados = [];
+    let actualizadas = 0;
+    let errores = 0;
+
+    for (const serie of lote) {
+      try {
+        const url = serie.url_poseidon || serie.url;
+        if (!url) {
+          errores++;
+          continue;
+        }
+
+        console.log(`\n📺 Procesando: ${serie.titulo} (${serie.tmdb_id})`);
+        
+        const resultado = await PoseidonScraper.scrapeSerieConServidores(url);
+        
+        if (resultado && resultado.episodios.length > 0) {
+          const conServidores = resultado.episodios.filter(ep => 
+            ep.servidores && ep.servidores.length > 0
+          );
+
+          const actualizada = {
+            ...serie,
+            episodios: resultado.episodios,
+            total_episodios: resultado.episodios.length,
+            episodios_con_servidores: conServidores.length,
+            fecha_actualizado: new Date().toISOString()
+          };
+
+          await FirebaseService.saveSerie(actualizada);
+          actualizadas++;
+
+          resultados.push({
+            tmdb_id: serie.tmdb_id,
+            titulo: serie.titulo,
+            total_episodios: resultado.episodios.length,
+            con_servidores: conServidores.length
+          });
+
+          console.log(`  ✅ ${conServidores.length}/${resultado.episodios.length} episodios con servidores`);
+        }
+        
+        await new Promise(r => setTimeout(r, 1000));
+      } catch (error) {
+        console.error(`  ❌ Error en ${serie.titulo}:`, error.message);
+        errores++;
+      }
+    }
+
+    res.json({
+      success: true,
+      procesadas: lote.length,
+      actualizadas,
+      errores,
+      pendientes: candidatas.length - lote.length,
+      resultados
+    });
+  } catch (error) {
+    console.error('Error en scrapeServidoresSeriesMasivo:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 
 

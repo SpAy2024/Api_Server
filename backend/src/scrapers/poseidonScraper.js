@@ -420,38 +420,40 @@ export class PoseidonScraper {
   }
 
   // ============ PROCESAR EPISODIOS EN LOTES ============
-  static async procesarEpisodiosEnLotes(episodios, batchSize = 5) {
-    const resultados = [];
+  // ============ PROCESAR EPISODIOS EN LOTES ============
+static async procesarEpisodiosEnLotes(episodios, batchSize = 3) {
+  const resultados = [];
+  
+  for (let i = 0; i < episodios.length; i += batchSize) {
+    const batch = episodios.slice(i, i + batchSize);
+    console.log(`📦 Procesando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(episodios.length / batchSize)}`);
     
-    for (let i = 0; i < episodios.length; i += batchSize) {
-      const batch = episodios.slice(i, i + batchSize);
-      console.log(`📦 Procesando lote ${Math.floor(i / batchSize) + 1} (${batch.length} episodios)`);
-      
-      const promises = batch.map(async (ep) => {
-        try {
-          const servidores = await Promise.race([
-            this.extraerServidoresDesdePagina(ep.url),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout en episodio')), 15000)
-            )
-          ]);
-          return { ...ep, servidores: servidores || [] };
-        } catch (error) {
-          console.log(`  ⏭️ Episodio ${ep.temporada}x${ep.numero}: sin servidores`);
-          return { ...ep, servidores: [] };
-        }
-      });
-      
-      const batchResults = await Promise.all(promises);
-      resultados.push(...batchResults);
-      
-      if (i + batchSize < episodios.length) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    const promises = batch.map(async (ep) => {
+      try {
+        // ✅ Usar el método específico para episodios
+        const servidores = await Promise.race([
+          this.extraerServidoresEpisodio(ep.url),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout en episodio')), 15000)
+          )
+        ]);
+        return { ...ep, servidores: servidores || [] };
+      } catch (error) {
+        console.log(`  ⏭️ Episodio ${ep.temporada}x${ep.numero}: sin servidores`);
+        return { ...ep, servidores: [] };
       }
-    }
+    });
     
-    return resultados;
+    const batchResults = await Promise.all(promises);
+    resultados.push(...batchResults);
+    
+    if (i + batchSize < episodios.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
+  
+  return resultados;
+}
 
   // ============ SCRAPEAR PELÍCULA ============
   static async scrapePelicula(url) {
@@ -1032,5 +1034,155 @@ static async scrapePaginaSeries(pagina = 1, enriquecerConTMDB = true) {
   console.log(`✅ Página ${pagina}: ${enriquecidas.length} series procesadas`);
   return enriquecidas;
 }
+
+
+// ============ SCRAPEAR SERIE COMPLETA CON SERVIDORES DE EPISODIOS ============
+static async scrapeSerieConServidores(url) {
+  console.log(`\n📺 Scrapeando serie con servidores: ${url}`);
+  
+  const tmdbId = this.extractTmdbId(url, 'serie');
+  if (!tmdbId) throw new Error('No se pudo extraer el ID de TMDB');
+
+  // 1. Obtener todos los episodios
+  let episodios = await this.obtenerTodosEpisodios(url, tmdbId);
+  episodios = episodios.filter(ep => ep.temporada > 0);
+  
+  console.log(`📊 Total episodios: ${episodios.length}`);
+  
+  if (episodios.length === 0) {
+    return { tmdbId, episodios: [] };
+  }
+
+  // 2. Scrapear servidores de cada episodio en lotes
+  console.log(`🔍 Extrayendo servidores de ${episodios.length} episodios...`);
+  const episodiosConServidores = await this.procesarEpisodiosEnLotes(episodios, 3);
+  
+  const conServidores = episodiosConServidores.filter(ep => 
+    ep.servidores && ep.servidores.length > 0
+  );
+  
+  console.log(`✅ ${conServidores.length}/${episodiosConServidores.length} episodios con servidores`);
+
+  return {
+    tmdbId,
+    episodios: episodiosConServidores
+  };
+}
+
+// ============ EXTRAER SERVIDORES DE UN EPISODIO ESPECÍFICO ============
+static async extraerServidoresEpisodio(episodioUrl) {
+  try {
+    const html = await this.obtenerContenido(episodioUrl);
+    if (!html) return [];
+
+    const $ = cheerio.load(html);
+    const servidores = [];
+    const servidoresVistos = new Set();
+
+    // 1. Buscar en __NEXT_DATA__
+    const nextData = $('script#__NEXT_DATA__').html();
+    if (nextData) {
+      try {
+        const data = JSON.parse(nextData);
+        const videos = data?.props?.pageProps?.episode?.videos 
+                    || data?.props?.pageProps?.thisEpisode?.videos
+                    || {};
+        
+        const idiomas = ['latino', 'spanish', 'english', 'subtitulado', 'es', 'en', 'original'];
+        
+        for (const lang of idiomas) {
+          if (videos[lang]) {
+            for (const video of videos[lang]) {
+              if (video?.result) {
+                let playerUrl = video.result;
+                let realUrl = playerUrl;
+
+                if (playerUrl.includes('player.poseidonhd2.co')) {
+                  try {
+                    const extraida = await this.extraerUrlRealDesdeReproductor(playerUrl);
+                    if (extraida) realUrl = extraida;
+                  } catch {}
+                }
+
+                const server = this.detectarServidor(realUrl);
+                if (server !== 'Desconocido' && !servidoresVistos.has(server)) {
+                  servidoresVistos.add(server);
+                  servidores.push({ server, url: realUrl });
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.log(`⚠️ Error parseando __NEXT_DATA__ del episodio:`, e.message);
+      }
+    }
+
+    // 2. Buscar en tablas
+    if (servidores.length === 0) {
+      $('table tr').each((i, row) => {
+        const rowText = $(row).text().toLowerCase();
+        const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions', '1fichier'];
+        
+        for (const pattern of servidoresConocidos) {
+          if (rowText.includes(pattern)) {
+            $(row).find('a[href], [data-tr], [data-url], [data-src]').each((k, el) => {
+              const url = $(el).attr('href') || $(el).attr('data-tr') || $(el).attr('data-url') || $(el).attr('data-src');
+              if (url && url.startsWith('http')) {
+                const server = this.detectarServidor(url);
+                if (server !== 'Desconocido' && !servidoresVistos.has(server)) {
+                  servidoresVistos.add(server);
+                  servidores.push({ server, url });
+                }
+              }
+            });
+            break;
+          }
+        }
+      });
+    }
+
+    // 3. Buscar en iframes
+    if (servidores.length === 0) {
+      $('iframe[src]').each((i, el) => {
+        const src = $(el).attr('src');
+        if (src) {
+          const server = this.detectarServidor(src);
+          if (server !== 'Desconocido' && !servidoresVistos.has(server)) {
+            servidoresVistos.add(server);
+            servidores.push({ server, url: src });
+          }
+        }
+      });
+    }
+
+    // 4. Buscar en enlaces directos
+    if (servidores.length === 0) {
+      const servidoresConocidos = ['streamwish', 'filemoon', 'vidhide', 'voe', 'dood', 'waaw', 'streamtape', 'filelions'];
+      $('a[href]').each((i, el) => {
+        const href = $(el).attr('href');
+        if (href) {
+          for (const pattern of servidoresConocidos) {
+            if (href.includes(pattern)) {
+              const server = this.detectarServidor(href);
+              if (server !== 'Desconocido' && !servidoresVistos.has(server)) {
+                servidoresVistos.add(server);
+                servidores.push({ server, url: href });
+              }
+              break;
+            }
+          }
+        }
+      });
+    }
+
+    return servidores;
+  } catch (error) {
+    console.log(`⚠️ Error extrayendo servidores del episodio: ${error.message}`);
+    return [];
+  }
+}
+
+
 
 }
