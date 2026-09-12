@@ -4,21 +4,18 @@ import { useState, useEffect } from 'react';
 import { scraperAPI, firebaseService } from '../../services/api';
 
 export function ScraperPanel() {
-  // ============ ESTADO ============
-  const [tab, setTab] = useState('scraper'); // 'scraper' | 'guardadas'
+  const [tab, setTab] = useState('scraper');
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState(null);
   const [mensaje, setMensaje] = useState(null);
   const [progreso, setProgreso] = useState(null);
 
-  // Datos
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [peliculas, setPeliculas] = useState([]);
   const [peliculasGuardadas, setPeliculasGuardadas] = useState([]);
   const [stats, setStats] = useState(null);
 
-  // Configuración
   const [paginaActual, setPaginaActual] = useState(1);
   const [rangoInicio, setRangoInicio] = useState(1);
   const [rangoFin, setRangoFin] = useState(3);
@@ -26,7 +23,6 @@ export function ScraperPanel() {
   const [conServidores, setConServidores] = useState(false);
   const [guardarAuto, setGuardarAuto] = useState(true);
 
-  // ============ CARGAR DATOS INICIALES ============
   useEffect(() => {
     cargarIniciales();
   }, []);
@@ -44,7 +40,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ VER ENLACES DE UNA PÁGINA ============
   async function verPagina() {
     setLoadingData(true);
     setError(null);
@@ -61,7 +56,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ SCRAPEAR UNA PÁGINA ============
   async function scrapearPagina() {
     setLoading(true);
     setError(null);
@@ -85,7 +79,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ SCRAPEAR RANGO CON PROGRESO ============
   async function scrapearRango() {
     setLoading(true);
     setError(null);
@@ -133,7 +126,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ SCRAPEO AUTOMÁTICO ============
   async function scrapearTodo() {
     setLoading(true);
     setError(null);
@@ -156,7 +148,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ CARGAR PELÍCULAS GUARDADAS ============
   async function cargarGuardadas() {
     setLoadingData(true);
     setError(null);
@@ -171,20 +162,16 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ SCRAPEAR SERVIDORES DE UNA PELÍCULA ============
   async function scrapearServidores(pelicula) {
-    if (!pelicula.url_poseidon && !pelicula.url) {
+    const url = pelicula.url_poseidon || pelicula.url;
+    if (!url) {
       alert('Esta película no tiene URL de Poseidon guardada');
       return;
     }
 
-    const url = pelicula.url_poseidon || pelicula.url;
-
     try {
       setMensaje(`🔄 Scrapeando servidores de ${pelicula.titulo}...`);
       const res = await scraperAPI.scrapePelicula({ url, guardar: true });
-      
-      // Actualizar en la lista
       setPeliculasGuardadas(prev =>
         prev.map(p => p.tmdb_id === pelicula.tmdb_id
           ? { ...p, servidores: res.pelicula?.servidores || [] }
@@ -198,7 +185,6 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ ELIMINAR PELÍCULA ============
   async function eliminarPelicula(tmdbId) {
     if (!confirm('¿Eliminar esta película?')) return;
     try {
@@ -213,247 +199,193 @@ export function ScraperPanel() {
     }
   }
 
-  // ============ RENDER ============
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-7xl mx-auto">
-
-        {/* HEADER */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">🎬 Panel de Scraping</h1>
-          <p className="text-gray-400">PoseidonHD - Extrae películas y servidores</p>
+    <div className="admin-container">
+      <div className="admin-header">
+        <div className="admin-header-left">
+          <h1>🎬 Panel de Scraping</h1>
+          <p>PoseidonHD - Extrae películas y servidores</p>
         </div>
+      </div>
 
-        {/* STATS */}
-        {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <StatCard label="Total Películas" value={stats.total} color="blue" />
-            <StatCard label="Con Servidores" value={stats.conServidores} color="green" />
-            <StatCard label="Sin Servidores" value={stats.sinServidores} color="yellow" />
-            <StatCard label="Páginas Disponibles" value={totalPaginas} color="purple" />
+      {stats && (
+        <div className="scraper-stats-grid">
+          <div className="scraper-stat-card blue">
+            <div className="scraper-stat-label">Total Películas</div>
+            <div className="scraper-stat-value">{stats.total}</div>
           </div>
-        )}
-
-        {/* TABS */}
-        <div className="flex gap-2 mb-6 border-b border-gray-700">
-          <TabButton active={tab === 'scraper'} onClick={() => setTab('scraper')}>
-            🔍 Scraper
-          </TabButton>
-          <TabButton active={tab === 'guardadas'} onClick={cargarGuardadas}>
-            💾 Guardadas ({peliculasGuardadas.length})
-          </TabButton>
+          <div className="scraper-stat-card green">
+            <div className="scraper-stat-label">Con Servidores</div>
+            <div className="scraper-stat-value">{stats.conServidores}</div>
+          </div>
+          <div className="scraper-stat-card yellow">
+            <div className="scraper-stat-label">Sin Servidores</div>
+            <div className="scraper-stat-value">{stats.sinServidores}</div>
+          </div>
+          <div className="scraper-stat-card purple">
+            <div className="scraper-stat-label">Páginas</div>
+            <div className="scraper-stat-value">{totalPaginas}</div>
+          </div>
         </div>
+      )}
 
-        {/* MENSAJES */}
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded mb-4 flex justify-between">
-            <span>❌ {error}</span>
-            <button onClick={() => setError(null)} className="text-red-300 hover:text-white">✕</button>
-          </div>
-        )}
-        {mensaje && (
-          <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded mb-4 flex justify-between">
-            <span>{mensaje}</span>
-            <button onClick={() => setMensaje(null)} className="text-green-300 hover:text-white">✕</button>
-          </div>
-        )}
+      <div className="scraper-tabs">
+        <button
+          className={`scraper-tab ${tab === 'scraper' ? 'active' : ''}`}
+          onClick={() => setTab('scraper')}
+        >
+          🔍 Scraper
+        </button>
+        <button
+          className={`scraper-tab ${tab === 'guardadas' ? 'active' : ''}`}
+          onClick={cargarGuardadas}
+        >
+          💾 Guardadas ({peliculasGuardadas.length})
+        </button>
+      </div>
 
-        {tab === 'scraper' && (
-          <>
-            {/* CONFIGURACIÓN */}
-            <div className="bg-gray-800 rounded-lg p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4">⚙️ Configuración</h2>
+      {error && (
+        <div className="scraper-alert scraper-alert-error">
+          <span>❌ {error}</span>
+          <button className="scraper-alert-close" onClick={() => setError(null)}>✕</button>
+        </div>
+      )}
+      {mensaje && (
+        <div className="scraper-alert scraper-alert-success">
+          <span>{mensaje}</span>
+          <button className="scraper-alert-close" onClick={() => setMensaje(null)}>✕</button>
+        </div>
+      )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                {/* Página individual */}
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Página individual</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      min="1"
-                      max={totalPaginas || 100}
-                      value={paginaActual}
-                      onChange={(e) => setPaginaActual(parseInt(e.target.value) || 1)}
-                      className="flex-1 bg-gray-700 rounded px-3 py-2 text-white"
-                    />
-                    <button
-                      onClick={verPagina}
-                      disabled={loadingData || loading}
-                      className="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded disabled:opacity-50 text-sm"
-                    >
-                      Ver
-                    </button>
-                    <button
-                      onClick={scrapearPagina}
-                      disabled={loading}
-                      className="bg-green-600 hover:bg-green-700 px-3 py-2 rounded disabled:opacity-50 text-sm"
-                    >
-                      Scrapear
-                    </button>
-                  </div>
-                </div>
+      {tab === 'scraper' && (
+        <>
+          <div className="scraper-config">
+            <h2>⚙️ Configuración</h2>
 
-                {/* Rango */}
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Rango de páginas</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      min="1"
-                      value={rangoInicio}
-                      onChange={(e) => setRangoInicio(parseInt(e.target.value) || 1)}
-                      className="w-20 bg-gray-700 rounded px-2 py-2 text-white"
-                    />
-                    <span>a</span>
-                    <input
-                      type="number"
-                      min={rangoInicio}
-                      value={rangoFin}
-                      onChange={(e) => setRangoFin(parseInt(e.target.value) || 1)}
-                      className="w-20 bg-gray-700 rounded px-2 py-2 text-white"
-                    />
-                    <button
-                      onClick={scrapearRango}
-                      disabled={loading}
-                      className="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded disabled:opacity-50 text-sm"
-                    >
-                      Rango
-                    </button>
-                  </div>
-                </div>
-
-                {/* Auto */}
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Scrapeo automático</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={maxPaginas}
-                      onChange={(e) => setMaxPaginas(parseInt(e.target.value) || 5)}
-                      className="w-20 bg-gray-700 rounded px-2 py-2 text-white"
-                    />
-                    <span className="text-sm text-gray-400">pág</span>
-                    <button
-                      onClick={scrapearTodo}
-                      disabled={loading}
-                      className="bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded disabled:opacity-50 text-sm"
-                    >
-                      Auto
-                    </button>
-                  </div>
+            <div className="scraper-config-grid">
+              <div className="scraper-config-group">
+                <label>Página individual</label>
+                <div className="scraper-input-row">
+                  <input
+                    type="number"
+                    min="1"
+                    value={paginaActual}
+                    onChange={(e) => setPaginaActual(parseInt(e.target.value) || 1)}
+                    className="scraper-input"
+                  />
+                  <button onClick={verPagina} disabled={loadingData || loading} className="scraper-btn scraper-btn-blue">
+                    Ver
+                  </button>
+                  <button onClick={scrapearPagina} disabled={loading} className="scraper-btn scraper-btn-green">
+                    Scrapear
+                  </button>
                 </div>
               </div>
 
-              {/* Checkboxes */}
-              <div className="flex gap-6 items-center border-t border-gray-700 pt-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="scraper-config-group">
+                <label>Rango de páginas</label>
+                <div className="scraper-input-row">
                   <input
-                    type="checkbox"
-                    checked={guardarAuto}
-                    onChange={(e) => setGuardarAuto(e.target.checked)}
-                    className="w-4 h-4"
+                    type="number"
+                    min="1"
+                    value={rangoInicio}
+                    onChange={(e) => setRangoInicio(parseInt(e.target.value) || 1)}
+                    className="scraper-input"
                   />
-                  <span className="text-sm">Guardar en Firebase</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                  <span style={{color: '#808080'}}>a</span>
                   <input
-                    type="checkbox"
-                    checked={conServidores}
-                    onChange={(e) => setConServidores(e.target.checked)}
-                    className="w-4 h-4"
+                    type="number"
+                    min={rangoInicio}
+                    value={rangoFin}
+                    onChange={(e) => setRangoFin(parseInt(e.target.value) || 1)}
+                    className="scraper-input"
                   />
-                  <span className="text-sm">
-                    Incluir servidores <span className="text-yellow-400 text-xs">(lento)</span>
-                  </span>
-                </label>
+                  <button onClick={scrapearRango} disabled={loading} className="scraper-btn scraper-btn-purple">
+                    Rango
+                  </button>
+                </div>
+              </div>
+
+              <div className="scraper-config-group">
+                <label>Scrapeo automático</label>
+                <div className="scraper-input-row">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={maxPaginas}
+                    onChange={(e) => setMaxPaginas(parseInt(e.target.value) || 5)}
+                    className="scraper-input"
+                  />
+                  <span style={{color: '#808080'}}>pág</span>
+                  <button onClick={scrapearTodo} disabled={loading} className="scraper-btn scraper-btn-orange">
+                    Auto
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* PROGRESO */}
-            {progreso && (
-              <div className="bg-gray-800 rounded-lg p-4 mb-6">
-                <div className="flex justify-between mb-2 text-sm">
-                  <span>Procesando página {progreso.actual} de {progreso.total}</span>
-                  <span>{progreso.porcentaje}%</span>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${progreso.porcentaje}%` }}
-                  />
-                </div>
-              </div>
-            )}
+            <div className="scraper-checkboxes">
+              <label className="scraper-checkbox">
+                <input
+                  type="checkbox"
+                  checked={guardarAuto}
+                  onChange={(e) => setGuardarAuto(e.target.checked)}
+                />
+                <span>Guardar en Firebase</span>
+              </label>
+              <label className="scraper-checkbox">
+                <input
+                  type="checkbox"
+                  checked={conServidores}
+                  onChange={(e) => setConServidores(e.target.checked)}
+                />
+                <span>Incluir servidores <span className="warning">(lento)</span></span>
+              </label>
+            </div>
+          </div>
 
-            {/* LOADING */}
-            {(loading || loadingData) && !progreso && (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                <span className="ml-3">Procesando...</span>
+          {progreso && (
+            <div className="scraper-progress">
+              <div className="scraper-progress-header">
+                <span>Procesando página {progreso.actual} de {progreso.total}</span>
+                <span>{progreso.porcentaje}%</span>
               </div>
-            )}
-
-            {/* LISTA DE PELÍCULAS */}
-            {peliculas.length > 0 && (
-              <div className="mb-6">
-                <h2 className="text-xl font-bold mb-4">
-                  📋 Películas extraídas ({peliculas.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {peliculas.map((peli, idx) => (
-                    <PeliculaCard key={`${peli.tmdb_id}-${idx}`} pelicula={peli} />
-                  ))}
-                </div>
+              <div className="scraper-progress-bar">
+                <div className="scraper-progress-fill" style={{ width: `${progreso.porcentaje}%` }} />
               </div>
-            )}
-          </>
-        )}
+            </div>
+          )}
 
-        {tab === 'guardadas' && (
-          <PeliculasGuardadas
-            peliculas={peliculasGuardadas}
-            loading={loadingData}
-            onScrapearServidores={scrapearServidores}
-            onDelete={eliminarPelicula}
-          />
-        )}
-      </div>
+          {(loading || loadingData) && !progreso && (
+            <div className="scraper-loading">
+              <div className="scraper-spinner" />
+              <span>Procesando...</span>
+            </div>
+          )}
+
+          {peliculas.length > 0 && (
+            <div>
+              <h2 className="scraper-section-title">📋 Películas extraídas ({peliculas.length})</h2>
+              <div className="scraper-movies-grid">
+                {peliculas.map((peli, idx) => (
+                  <PeliculaCard key={`${peli.tmdb_id}-${idx}`} pelicula={peli} />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === 'guardadas' && (
+        <PeliculasGuardadas
+          peliculas={peliculasGuardadas}
+          loading={loadingData}
+          onScrapearServidores={scrapearServidores}
+          onDelete={eliminarPelicula}
+        />
+      )}
     </div>
-  );
-}
-
-// ============ COMPONENTES AUXILIARES ============
-
-function StatCard({ label, value, color }) {
-  const colors = {
-    blue: 'from-blue-600 to-blue-800',
-    green: 'from-green-600 to-green-800',
-    yellow: 'from-yellow-600 to-yellow-800',
-    purple: 'from-purple-600 to-purple-800'
-  };
-  return (
-    <div className={`bg-gradient-to-br ${colors[color]} rounded-lg p-4`}>
-      <div className="text-sm text-white/80">{label}</div>
-      <div className="text-3xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`px-4 py-2 font-medium transition-colors ${
-        active
-          ? 'text-white border-b-2 border-blue-500'
-          : 'text-gray-400 hover:text-white'
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -461,58 +393,40 @@ function PeliculaCard({ pelicula }) {
   const servidores = pelicula.servidores || [];
 
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden">
-      <div className="flex gap-3 p-3">
+    <div className="scraper-movie-card">
+      <div className="scraper-movie-body">
         {pelicula.poster_url ? (
-          <img
-            src={pelicula.poster_url}
-            alt={pelicula.titulo}
-            className="w-20 h-30 object-cover rounded"
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
+          <img src={pelicula.poster_url} alt={pelicula.titulo} className="scraper-movie-poster" />
         ) : (
-          <div className="w-20 h-30 bg-gray-700 rounded flex items-center justify-center text-gray-500">
-            🎬
-          </div>
+          <div className="scraper-movie-poster-empty">🎬</div>
         )}
 
-        <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-sm line-clamp-2 mb-1">{pelicula.titulo}</h3>
-          <div className="text-xs text-gray-400 mb-2">
+        <div className="scraper-movie-info">
+          <h3 className="scraper-movie-title">{pelicula.titulo}</h3>
+          <div className="scraper-movie-meta">
             {pelicula.year}
             {pelicula.vote_average > 0 && (
-              <span className="ml-2 text-yellow-400">
-                ⭐ {Number(pelicula.vote_average).toFixed(1)}
-              </span>
+              <span className="scraper-movie-rating">⭐ {Number(pelicula.vote_average).toFixed(1)}</span>
             )}
           </div>
 
           {pelicula.generos && pelicula.generos.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="scraper-movie-genres">
               {pelicula.generos.slice(0, 2).map((g, i) => (
-                <span key={i} className="text-xs bg-gray-700 px-2 py-0.5 rounded">
-                  {g}
-                </span>
+                <span key={i} className="scraper-genre-tag">{g}</span>
               ))}
             </div>
           )}
 
-          <div className="mt-2">
-            {servidores.length > 0 ? (
-              <div className="flex flex-wrap gap-1">
-                {servidores.map((s, i) => (
-                  <span
-                    key={i}
-                    className="text-xs bg-green-600/30 text-green-300 px-2 py-0.5 rounded border border-green-600/50"
-                  >
-                    {s.server}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span className="text-xs text-gray-500">Sin servidores</span>
-            )}
-          </div>
+          {servidores.length > 0 ? (
+            <div className="scraper-movie-servers">
+              {servidores.map((s, i) => (
+                <span key={i} className="scraper-server-tag">{s.server}</span>
+              ))}
+            </div>
+          ) : (
+            <span className="scraper-no-servers">Sin servidores</span>
+          )}
         </div>
       </div>
     </div>
@@ -531,88 +445,67 @@ function PeliculasGuardadas({ peliculas, loading, onScrapearServidores, onDelete
 
   return (
     <div>
-      <div className="flex flex-wrap gap-4 mb-4">
+      <div className="scraper-filters">
         <input
           type="text"
           placeholder="Buscar por título..."
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
-          className="flex-1 min-w-[200px] bg-gray-700 rounded px-3 py-2 text-white"
+          className="scraper-search"
         />
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="scraper-checkbox">
           <input
             type="checkbox"
             checked={soloConServidores}
             onChange={(e) => setSoloConServidores(e.target.checked)}
-            className="w-4 h-4"
           />
-          <span className="text-sm">Solo con servidores</span>
+          <span>Solo con servidores</span>
         </label>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <div className="scraper-loading">
+          <div className="scraper-spinner" />
+          <span>Cargando...</span>
         </div>
       ) : filtradas.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <p className="text-4xl mb-2">📭</p>
+        <div className="scraper-empty">
+          <div className="scraper-empty-icon">📭</div>
           <p>No hay películas {filtro ? 'que coincidan' : 'guardadas'}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="scraper-movies-grid">
           {filtradas.map((peli) => (
-            <div key={peli.tmdb_id} className="bg-gray-800 rounded-lg p-4">
-              <div className="flex gap-3 mb-3">
+            <div key={peli.tmdb_id} className="scraper-saved-card">
+              <div className="scraper-saved-header">
                 {peli.poster_url && (
-                  <img
-                    src={peli.poster_url}
-                    alt={peli.titulo}
-                    className="w-16 h-24 object-cover rounded"
-                  />
+                  <img src={peli.poster_url} alt={peli.titulo} className="scraper-saved-poster" />
                 )}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-sm mb-1 line-clamp-2">{peli.titulo}</h3>
-                  <div className="text-xs text-gray-400">
+                <div className="scraper-saved-info">
+                  <h3 className="scraper-saved-title">{peli.titulo}</h3>
+                  <div className="scraper-saved-meta">
                     {peli.year} • ID: {peli.tmdb_id}
                   </div>
                 </div>
               </div>
 
-              <div className="mb-3">
-                <div className="text-xs text-gray-400 mb-1">
-                  Servidores ({peli.servidores?.length || 0}):
-                </div>
+              <div className="scraper-movie-servers" style={{marginBottom: '12px'}}>
                 {peli.servidores && peli.servidores.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {peli.servidores.map((s, i) => (
-                      <a
-                        key={i}
-                        href={s.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs bg-green-600/30 text-green-300 px-2 py-0.5 rounded border border-green-600/50 hover:bg-green-600/50"
-                      >
-                        {s.server}
-                      </a>
-                    ))}
-                  </div>
+                  peli.servidores.map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" className="scraper-server-tag">
+                      {s.server}
+                    </a>
+                  ))
                 ) : (
-                  <span className="text-xs text-gray-500">Sin servidores</span>
+                  <span className="scraper-no-servers">Sin servidores</span>
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onScrapearServidores(peli)}
-                  className="flex-1 text-xs bg-blue-600 hover:bg-blue-700 py-1.5 rounded"
-                >
+              <div className="scraper-saved-actions">
+                <button onClick={() => onScrapearServidores(peli)} className="scraper-btn scraper-btn-blue">
                   🔄 Servidores
                 </button>
-                <button
-                  onClick={() => onDelete(peli.tmdb_id)}
-                  className="text-xs bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded"
-                >
+                <button onClick={() => onDelete(peli.tmdb_id)} className="scraper-btn scraper-btn-red scraper-btn-icon">
                   🗑️
                 </button>
               </div>
